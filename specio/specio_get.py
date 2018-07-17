@@ -273,11 +273,12 @@ def standard_roots(telescope, root, silent):
             if sys.platform == "darwin":
                 roots = {}
                 roots['nights'] = scalify(glob.glob('/Users/mx/Big_Data/BIG_DATA_SPECULOOS/'+telescope+'/callisto_pipeline_output/'))
-    
+                roots['logs'] = scalify(glob.glob('/Users/mx/Big_Data/BIG_DATA_SPECULOOS/'+telescope+'/processed_logs/'))
             #::: on Cambridge servers
             elif 'ra.phy.cam.ac.uk' in socket.gethostname():
                 roots = {}
                 roots['nights'] = scalify(glob.glob('/appcg/data2/SPECULOOSPipeline/'+telescope+'/output/'))
+                roots['logs'] = scalify(glob.glob('/appcg/data2/SPECULOOS/'+telescope+'_Logs/'))
 
         #if a single root is given, it will overwrite individual roots
         elif root is not None:

@@ -17,6 +17,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import specio_get
 import pickle
+import os
 
 
 
@@ -138,21 +139,33 @@ def plot_overview(telescope, field_name, filter_band, obj_id=None, obj_row=None,
         time_index=None, time_date=None, time_hjd=None, time_actionid=None, 
         bls_rank=1, indexing='fits', fitsreader='fitsio', simplify=True, 
         fnames=None, root=None, roots=None, silent=True, set_nan=False):
+    '''
+    FLUX     |  FWHM      |  SKYLEVEL  |  AIRMASS
+    --------------------------------------------------
+    RA_MOVE  |  DEC_MOVE  |  CCD-TEMP  |  POINTING ERR
+    '''
     
-    keys = ['FLUX', 'FWHM', 'SKYLEVEL', 'RA_MOVE', 'DEC_MOVE', 'CCD-TEMP']
+    keys = ['FLUX', 'FWHM', 'SKYLEVEL', 'AIRMASS', 'RA_MOVE', 'DEC_MOVE', 'CCD-TEMP']
     dic = get(telescope, field_name, filter_band, keys+['JD'], obj_id=obj_id, obj_row=obj_row, 
         time_index=time_index, time_date=time_date, time_hjd=time_hjd, time_actionid=time_actionid, 
         bls_rank=bls_rank, indexing=indexing, fitsreader=fitsreader, simplify=simplify, 
         fnames=fnames, root=root, roots=roots, silent=silent, set_nan=set_nan)
     
-    t = dic['JD'] - 2450000
-    fig, axes = plt.subplots(2,3,figsize=(10,5),sharex=True)
-    for i in range(len(keys)):
-        ii,jj = np.unravel_index(i, (2,3))
-        axes[ii,jj].plot(t, dic[keys[i]], 'k.', rasterized=True)
-        axes[ii,jj].set(ylabel=keys[i])
+    dic_ACP = get_ACP_pointing(telescope,time_hjd=time_hjd)
+    
+    t = dic['JD']-2450000
+    fig, axes = plt.subplots(2,4,figsize=(16,6),sharex=True)
+    for i in range(len(keys)+1):
+        ii,jj = np.unravel_index(i, (2,4))
+        if i<7:
+            axes[ii,jj].plot(t, dic[keys[i]], 'k.', rasterized=True)
+            axes[ii,jj].set(ylabel=keys[i])
+            xmin, xmax = axes[ii,jj].get_xlim()
+        if i==7:
+            axes[ii,jj].plot(dic_ACP['JD']-2450000, dic_ACP['POINTING_ERR'], 'k.', rasterized=True)
+            axes[ii,jj].set(ylabel='POINTING_ERR', xlim=(xmin,xmax))
         if ii>0: 
-            axes[ii,jj].set(xlabel='JD-OBS (-2450000 d)')
+            axes[ii,jj].set(xlabel='JD (-2450000 d)')
 #    axes[-1,-1].axis('off')
     plt.suptitle = field_name + '_' + filter_band
     plt.tight_layout()
@@ -199,7 +212,50 @@ def print_stats(telescope, field_name, filter_band, obj_id=None, obj_row=None,
     for i in range(len(dic['STATS'][0])):
         print(dic['STATS'][0][i], sep, dic['STATS'][1][i])
         
+        
+
+###############################################################################
+# For ACP pointing
+###############################################################################
+def get_ACP_pointing(telescope,time_hjd=None):
+    from astropy.time import Time
+    
+    roots = specio_get.standard_roots(telescope, None, True)
+    fname = os.path.join( roots['logs'], 'ACP_pointing.txt' )
+    data = np.genfromtxt(fname,dtype=None,names=True,delimiter=',',encoding='utf-8')
+    
+    if time_hjd is not None:
+        ind = np.where( data['DATE'] == time_hjd )[0]
+        data = data[:][ind]
+                
+    dic = {}
+    for key in data.dtype.names:
+        dic[key] = data[key]
+        
+    times = [ str(date)+'T'+str(time) for i,(date,time) in enumerate(zip(dic['DATE'],dic['TIME']))]
+    dic['JD'] = Time(times, format='isot', scale='utc').jd
+    return dic
+            
+        
+        
+def plot_ACP_pointing(telescope,time_hjd=None):
+    dic = get_ACP_pointing(telescope, time_hjd=time_hjd)
+    t = dic['JD'] - 2450000
+    fig, ax = plt.subplots()
+    ax.plot(t, dic['POINTING_ERR'], 'k.', rasterized=True)
+    ax.set(xlabel='JD (-2450000 d)', ylabel='Pointing error', title=telescope)
+    return fig, ax
 
 
+
+###############################################################################
+# Needed for Jupyter Notebook
+###############################################################################
 def root(telescope):
     return specio_get.standard_roots(telescope, None, True)['nights']
+    
+    
+    
+#if __name__ == '__main__':
+#     plot_ACP_pointing('Callisto')
+#     plot_ACP_pointing('Callisto',time_hjd='2018-06-04')
