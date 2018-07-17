@@ -151,7 +151,10 @@ def plot_overview(telescope, field_name, filter_band, obj_id=None, obj_row=None,
         bls_rank=bls_rank, indexing=indexing, fitsreader=fitsreader, simplify=simplify, 
         fnames=fnames, root=root, roots=roots, silent=silent, set_nan=set_nan)
     
-    dic_ACP = get_ACP_pointing(telescope,time_hjd=time_hjd)
+    try:
+        dic_ACP = get_ACP_pointing(telescope,time_hjd=time_hjd)
+    except:
+        pass
     
     t = dic['JD']-2450000
     fig, axes = plt.subplots(2,4,figsize=(16,6),sharex=True)
@@ -162,7 +165,10 @@ def plot_overview(telescope, field_name, filter_band, obj_id=None, obj_row=None,
             axes[ii,jj].set(ylabel=keys[i])
             xmin, xmax = axes[ii,jj].get_xlim()
         if i==7:
-            axes[ii,jj].plot(dic_ACP['JD']-2450000, dic_ACP['POINTING_ERR'], 'k.', rasterized=True)
+            try:
+                axes[ii,jj].plot(dic_ACP['JD']-2450000, dic_ACP['POINTING_ERR'], 'k.', rasterized=True)
+            except:
+                pass
             axes[ii,jj].set(ylabel='POINTING_ERR', xlim=(xmin,xmax))
         if ii>0: 
             axes[ii,jj].set(xlabel='JD (-2450000 d)')
