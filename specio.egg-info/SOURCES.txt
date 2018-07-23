@@ -1,0 +1,10 @@
+README.md
+setup.py
+specio/__init__.py
+specio/specio.py
+specio/specio_get.py
+specio/specio_test.py
+specio.egg-info/PKG-INFO
+specio.egg-info/SOURCES.txt
+specio.egg-info/dependency_links.txt
+specio.egg-info/top_level.txt
