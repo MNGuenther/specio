@@ -25,20 +25,23 @@ if __name__ == '__main__':
     filter_band = 'I+z'
     obj_id = 'SP000002'
     
-    print specio.root(telescope)
+#    print specio.root(telescope)
+#    
+#    #::: print stats on observed nights and #images
+#    specio.print_stats(telescope, field_name, filter_band)
+#    
+#    #::: plot a light curve
+#    specio.plot_lc(telescope, field_name, filter_band, obj_id=obj_id)
+#    
+#    #::: plot a light curve of a selected day
+#    specio.plot_lc(telescope, field_name, filter_band, obj_id=obj_id, time_date='2018-02-03')
+#    
+#    #::: plot seeing / ccd_temp / fwhm
+#    specio.plot_any(telescope, field_name, filter_band, 'SEEING')
+#    specio.plot_any(telescope, field_name, filter_band, 'CCD-TEMP')
+#    specio.plot_any(telescope, field_name, filter_band, 'FWHM')
     
-    #::: print stats on observed nights and #images
-    specio.print_stats(telescope, field_name, filter_band)
+#    print specio.get_available_keys(telescope, field_name, filter_band)
     
-    #::: plot a light curve
-    specio.plot_lc(telescope, field_name, filter_band, obj_id=obj_id)
-    
-    #::: plot a light curve of a selected day
-    specio.plot_lc(telescope, field_name, filter_band, obj_id=obj_id, time_date='2018-02-03')
-    
-    #::: plot seeing / ccd_temp / fwhm
-    specio.plot_any(telescope, field_name, filter_band, 'SEEING')
-    specio.plot_any(telescope, field_name, filter_band, 'CCD-TEMP')
-    specio.plot_any(telescope, field_name, filter_band, 'FWHM')
-    
-    
+    #:: plot overview
+    print specio.plot_overview(telescope, field_name, filter_band, extra_keys=['RA', 'DEC'], obj_id=obj_id)

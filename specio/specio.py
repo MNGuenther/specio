@@ -24,7 +24,7 @@ import os
 ###############################################################################
 # Define version
 ###############################################################################
-__version__ = '0.1.0'
+__version__ = '0.1.1'
 
     
 '''
@@ -82,7 +82,15 @@ def get(telescope, field_name, filter_band, keys, obj_id=None, obj_row=None,
             
     return dic
     
-    
+
+
+###############################################################################
+# Get keys
+###############################################################################
+
+def get_available_keys(telescope, field_name, filter_band, root=None, roots=None, fnames=None, silent=True):
+    return specio_get.get_available_keys(telescope, field_name, filter_band, root=None, roots=None, fnames=None, silent=True)               
+
     
 
 ###############################################################################
@@ -135,45 +143,61 @@ def plot_lc(telescope, field_name, filter_band, obj_id=None, obj_row=None,
 
 
 
-def plot_overview(telescope, field_name, filter_band, obj_id=None, obj_row=None, 
+def plot_overview(telescope, field_name, filter_band, extra_keys=[], obj_id=None, obj_row=None, 
         time_index=None, time_date=None, time_hjd=None, time_actionid=None, 
         bls_rank=1, indexing='fits', fitsreader='fitsio', simplify=True, 
-        fnames=None, root=None, roots=None, silent=True, set_nan=False):
+        fnames=None, root=None, roots=None, silent=True, set_nan=False, 
+        normalized=True, color='lightgrey'):
     '''
     FLUX     |  FWHM      |  SKYLEVEL  |  AIRMASS
     --------------------------------------------------
     RA_MOVE  |  DEC_MOVE  |  CCD-TEMP  |  POINTING ERR
+    --------------------------------------------------
+    EXTRA_1  |  EXTRA_2   | ...
     '''
     
-    keys = ['FLUX', 'FWHM', 'SKYLEVEL', 'AIRMASS', 'RA_MOVE', 'DEC_MOVE', 'CCD-TEMP']
+    keys = ['FLUX', 'FWHM', 'SKYLEVEL', 'AIRMASS', 'RA_MOVE', 'DEC_MOVE', 'CCD-TEMP'] \
+            + extra_keys
     dic = get(telescope, field_name, filter_band, keys+['JD'], obj_id=obj_id, obj_row=obj_row, 
         time_index=time_index, time_date=time_date, time_hjd=time_hjd, time_actionid=time_actionid, 
         bls_rank=bls_rank, indexing=indexing, fitsreader=fitsreader, simplify=simplify, 
         fnames=fnames, root=root, roots=roots, silent=silent, set_nan=set_nan)
     
-    try:
-        dic_ACP = get_ACP_pointing(telescope,time_hjd=time_hjd)
-    except:
-        pass
+#    try:
+#        dic_ACP = get_ACP_pointing(telescope,time_hjd=time_hjd)
+#    except:
+#        pass
     
+    dic['FLUX'][ dic['FLUX']==0 ] = np.nan
+    dic['FLUX_MEAN'] = np.nanmean(dic['FLUX'])
+    dic['FLUX_MEDIAN'] = np.nanmedian(dic['FLUX'])
+    if normalized:
+        dic['FLUX'] /= dic['FLUX_MEDIAN']
+        
+    N_panels = len(keys)
+    N_rows = int( np.ceil(N_panels/4.) )
+        
     t = dic['JD']-2450000
-    fig, axes = plt.subplots(2,4,figsize=(16,6),sharex=True)
-    for i in range(len(keys)+1):
-        ii,jj = np.unravel_index(i, (2,4))
-        if i<7:
-            axes[ii,jj].plot(t, dic[keys[i]], 'k.', rasterized=True)
+    fig, axes = plt.subplots(N_rows,4,figsize=(16,N_rows*3),sharex=True)
+    for i in range(N_rows*4):
+        ii,jj = np.unravel_index(i, (N_rows,4))
+        if i < len(keys):
+            axes[ii,jj].plot(t, dic[keys[i]], 'k.', color=color, rasterized=True)
             axes[ii,jj].set(ylabel=keys[i])
             xmin, xmax = axes[ii,jj].get_xlim()
-        if i==7:
-            try:
-                axes[ii,jj].plot(dic_ACP['JD']-2450000, dic_ACP['POINTING_ERR'], 'k.', rasterized=True)
-            except:
-                pass
-            axes[ii,jj].set(ylabel='POINTING_ERR', xlim=(xmin,xmax))
-        if ii>0: 
+    #        if i==7:
+    #            try:
+    #                axes[ii,jj].plot(dic_ACP['JD']-2450000, dic_ACP['POINTING_ERR'], 'k.', rasterized=True)
+    #            except:
+    #                pass
+    #            axes[ii,jj].set(ylabel='POINTING_ERR', xlim=(xmin,xmax))
+        if i >= len(keys)-4: 
             axes[ii,jj].set(xlabel='JD (-2450000 d)')
+            axes[ii,jj].tick_params(labelbottom=True)
+        if i >= len(keys):
+            axes[ii,jj].axis('off')
 #    axes[-1,-1].axis('off')
-    plt.suptitle = field_name + '_' + filter_band
+    plt.suptitle = field_name + '_' + filter_band + ', Mean flux:' + str(dic['FLUX_MEAN'])
     plt.tight_layout()
     
     return fig, axes
@@ -219,6 +243,34 @@ def print_stats(telescope, field_name, filter_band, obj_id=None, obj_row=None,
         print(dic['STATS'][0][i], sep, dic['STATS'][1][i])
         
         
+        
+
+
+def print_infos(telescope, field_name, filter_band, obj_id=None, obj_row=None, 
+        time_index=None, time_date=None, time_hjd=None, time_actionid=None, 
+        bls_rank=1, indexing='fits', fitsreader='fitsio', simplify=True, 
+        fnames=None, root=None, roots=None, silent=True, set_nan=False,
+        sep='\t'):
+    
+    dic = get(telescope, field_name, filter_band, ['STATS', 'EXPOSURE', 'FLUX', 'GAIA_ID', 'GMAG'], obj_id=obj_id, obj_row=obj_row, 
+        time_index=time_index, time_date=time_date, time_hjd=time_hjd, time_actionid=time_actionid, 
+        bls_rank=bls_rank, indexing=indexing, fitsreader=fitsreader, simplify=simplify, 
+        fnames=fnames, root=root, roots=roots, silent=silent, set_nan=set_nan)
+    
+    dic['FLUX'][ dic['FLUX']==0 ] = np.nan
+    dic['FLUX_MEAN'] = np.nanmean(dic['FLUX'])
+    
+    print(telescope, field_name, filter_band, obj_id)
+    print('Gaia ID:', dic['GAIA_ID'])
+    print('Nights:', len(dic['STATS'][0]))
+    print('Images:', np.sum(dic['STATS'][1]))
+    print('Mean exposure:', "{0:.0f}".format( np.nanmean(dic['EXPOSURE']) ), 's')
+    print('Hours observed:', "{0:.1f}".format( np.sum(dic['STATS'][1]) * np.nanmean(dic['EXPOSURE']) / 3600. ), 'h')
+    print('Date range:', 'from', dic['STATS'][0][0], 'to', dic['STATS'][0][-1])
+    print('Mean flux:', "{0:.0f}".format( np.nanmean(dic['FLUX_MEAN']) ))
+    print('G-mag:', "{0:.1f}".format( np.nanmean(dic['GMAG']) ))
+    
+    
 
 ###############################################################################
 # For ACP pointing
@@ -254,6 +306,16 @@ def plot_ACP_pointing(telescope,time_hjd=None):
 
 
 
+
+###############################################################################
+# Check on which nights which targets were observed
+###############################################################################
+def get_observing_list():   
+    return specio_get.get_observing_list()
+    
+
+
+
 ###############################################################################
 # Needed for Jupyter Notebook
 ###############################################################################
@@ -265,3 +327,4 @@ def root(telescope):
 #if __name__ == '__main__':
 #     plot_ACP_pointing('Callisto')
 #     plot_ACP_pointing('Callisto',time_hjd='2018-06-04')
+     

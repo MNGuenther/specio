@@ -22,7 +22,6 @@ import numpy as np
 
 
 
-
 ###############################################################################
 # Helper function
 ###############################################################################
@@ -1214,3 +1213,67 @@ def check_dic(dic, keys, silent):
     return
 
 
+
+
+###############################################################################
+# Check which keys are available
+###############################################################################
+def get_available_keys(telescope, field_name, filter_band, root=None, roots=None, fnames=None, silent=True):    
+    
+    if (roots is None) and (fnames is None):
+        roots = standard_roots(telescope, root, silent)
+    
+    if fnames is None: 
+        fnames = standard_fnames(telescope, field_name, filter_band, roots, silent)
+    
+    if fnames is not None:
+        with pyfits.open(fnames['nights'], mode='denywrite') as hdulist:                
+            hdukeys = [ hdukeyinfo[1] for _, hdukeyinfo in enumerate(hdulist.info(output=False)) ]
+            keys_imagelist = hdulist['IMAGELIST'].data.names
+            keys_catalogue = hdulist['CATALOGUE'].data.names
+    
+    return hdukeys + keys_imagelist + keys_catalogue
+    
+    
+
+
+
+###############################################################################
+# Check on which nights which targets were observed
+###############################################################################
+def get_observing_list(): 
+    import pandas as pd
+    from tqdm import tqdm
+    
+    #::: on laptop (OS X)
+    if sys.platform == "darwin":
+        files = [ f for tel in ['Io','Europe','Callisto','Ganymede'] for f in glob.glob('/Users/mx/Big_Data/BIG_DATA_SPECULOOS/{tel}/callisto_pipeline_output/20*/*/*_output.fts'.format(tel=tel)) ]    
+    
+    #::: on Cambridge servers
+    elif 'ra.phy.cam.ac.uk' in socket.gethostname():
+        files = [ f for tel in ['Io','Europe','Callisto','Ganymede'] for f in glob.glob('/appcg/data2/SPECULOOSPipeline/{tel}/output/20*/*/*_output.fts'.format(tel=tel)) ]    
+    
+    dic = {}
+    dic['telescope'] = [ f.split('/')[-5] for f in files ]
+    dic['date'] = [ os.path.basename(f).split('_')[0] for f in files ]
+    dic['field_name'] = [ os.path.basename(f).split('_')[1] for f in files ]
+    dic['filter'] = [ os.path.basename(f).split('_')[2] for f in files ]
+    dic['N_images'] = np.zeros(len(files))
+    dic['exposure'] = np.zeros(len(files))
+    dic['N_hours'] = np.zeros(len(files))
+    
+    for i,f in tqdm( enumerate(files), total=len(files) ):
+        try:
+            with pyfits.open(f, mode='denywrite') as hdulist:
+                dic['N_images'][i] = len( hdulist['IMAGELIST'].data )
+                dic['exposure'][i] = np.round( 100*np.nanmean( hdulist['IMAGELIST'].data['EXPOSURE'] ) )/100.
+                dic['N_hours'][i] = np.round( 100*dic['N_images'][i] * dic['exposure'][i] / 3600. ) /100.
+        except:
+            pass
+    
+    df = pd.DataFrame(dic)
+    df = df[ ['date', 'telescope', 'field_name', 'filter', 'exposure', 'N_images', 'N_hours'] ]
+    df['date'] = pd.to_datetime(df['date'])
+    df.sort_values(by='date')
+    
+    return df
