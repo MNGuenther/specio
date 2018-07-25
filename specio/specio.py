@@ -17,7 +17,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import specio_get
 import pickle
-import os
+import os, sys, socket
 
 
 
@@ -310,10 +310,25 @@ def plot_ACP_pointing(telescope,time_hjd=None):
 ###############################################################################
 # Check on which nights which targets were observed
 ###############################################################################
-def get_observing_list():   
-    return specio_get.get_observing_list()
+def get_observing_log():   
+    return specio_get.get_observing_log()
     
 
+
+def save_observing_log():   
+    
+    #::: on laptop (OS X)
+    if sys.platform == "darwin":
+        fname = '/Users/mx/Big_Data/BIG_DATA_SPECULOOS/Observing_log'    
+    
+    #::: on Cambridge servers
+    elif 'ra.phy.cam.ac.uk' in socket.gethostname():
+        fname = '/appcg/data2/SPECULOOS/Observing_log'    
+    
+    df = specio_get.get_observing_log()
+    pickle.dump(df, open(fname+'.pickle','wb'))
+    df.to_html(fname+'.html')
+    
 
 
 ###############################################################################
@@ -323,8 +338,3 @@ def root(telescope):
     return specio_get.standard_roots(telescope, None, True)['nights']
     
     
-    
-#if __name__ == '__main__':
-#     plot_ACP_pointing('Callisto')
-#     plot_ACP_pointing('Callisto',time_hjd='2018-06-04')
-     

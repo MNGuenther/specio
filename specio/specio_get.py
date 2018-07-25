@@ -1241,7 +1241,7 @@ def get_available_keys(telescope, field_name, filter_band, root=None, roots=None
 ###############################################################################
 # Check on which nights which targets were observed
 ###############################################################################
-def get_observing_list(): 
+def get_observing_log(): 
     import pandas as pd
     from tqdm import tqdm
     
