@@ -1274,6 +1274,6 @@ def get_observing_log():
     df = pd.DataFrame(dic)
     df = df[ ['date', 'telescope', 'field_name', 'filter', 'exposure', 'N_images', 'N_hours'] ]
     df['date'] = pd.to_datetime(df['date'])
-    df.sort_values(by='date')
+    df.sort_values(by='date', inplace=True)
     
     return df

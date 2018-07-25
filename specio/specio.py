@@ -324,8 +324,9 @@ def save_observing_log():
     #::: on Cambridge servers
     elif 'ra.phy.cam.ac.uk' in socket.gethostname():
         dirname = '/appcg/data2/SPECULOOS/Observing_log/'    
-    
-    df = specio_get.get_observing_log()
+        
+    if not os.path.exists(dirname): os.makedirs(dirname)
+    df = get_observing_log()
     pickle.dump(df, open(dirname+'Observing_log.pickle','wb'))
     df.to_html(dirname+'Observing_log.html')
     

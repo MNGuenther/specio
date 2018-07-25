@@ -1,0 +1,1 @@
+0 3 * * * /appcg/data2/SPECULOOS/anaconda/bin/python /appcg/data2/SPECULOOS/specio/specio/specio_save_observing_log.py
