@@ -316,6 +316,7 @@ def get_observing_log():
 
 
 def save_observing_log():   
+    import pandas as pd
     
     #::: on laptop (OS X)
     if sys.platform == "darwin":
@@ -327,6 +328,7 @@ def save_observing_log():
         
     if not os.path.exists(dirname): os.makedirs(dirname)
     df = get_observing_log()
+    df['date']=pd.to_datetime(df.date)
     df = df.sort_values(by='date') 
     pickle.dump(df, open(dirname+'Observing_log.pickle','wb'))
     df.to_html(dirname+'Observing_log.html')
