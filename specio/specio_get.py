@@ -1275,5 +1275,6 @@ def get_observing_log():
     df = df[ ['date', 'telescope', 'field_name', 'filter', 'exposure', 'N_images', 'N_hours'] ]
     df['date']=pd.to_datetime(df.date)
     df = df.sort_values(by='date') 
+    df = df.reset_index(drop=True)
     
     return df
