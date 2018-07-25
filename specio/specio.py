@@ -327,6 +327,7 @@ def save_observing_log():
         
     if not os.path.exists(dirname): os.makedirs(dirname)
     df = get_observing_log()
+    df = df.sort_values(by='date') 
     pickle.dump(df, open(dirname+'Observing_log.pickle','wb'))
     df.to_html(dirname+'Observing_log.html')
     
