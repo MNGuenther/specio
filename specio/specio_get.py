@@ -1013,10 +1013,10 @@ def pyfits_get_data(fnames, obj_ids, ind_objs, keys, bls_rank, ind_time=slice(No
             if hdukey in keys:
                 key = hdukey
                 dic[key] = hdulist[key].data[ind_objs][:,ind_time] #copy.deepcopy( hdulist[key].data[ind_objs][:,ind_time] )
-                if key in ['CCDX','CCDY']:
-                    dic[key] = (dic[key] + CCD_bzero) / CCD_precision
-                if key in ['CENTDX','CENTDX_ERR','CENTDY','CENTDY_ERR']:
-                    dic[key] = (dic[key] + CENTD_bzero) / CENTD_precision
+#                if key in ['CCDX','CCDY']:
+#                    dic[key] = (dic[key] + CCD_bzero) / CCD_precision
+#                if key in ['CENTDX','CENTDX_ERR','CENTDY','CENTDY_ERR']:
+#                    dic[key] = (dic[key] + CENTD_bzero) / CENTD_precision
                 del hdulist[key].data
 
         del hdulist
@@ -1106,10 +1106,10 @@ def fitsio_get_data(fnames, obj_ids, ind_objs, keys, bls_rank, ind_time=slice(No
                         dic[key] = buf
                         del buf
 
-                    if key in ['CCDX','CCDY']:
-                        dic[key] = (dic[key] + CCD_bzero) / CCD_precision
-                    if key in ['CENTDX','CENTDX_ERR','CENTDY','CENTDY_ERR']:
-                        dic[key] = (dic[key] + CENTD_bzero) / CENTD_precision
+#                    if key in ['CCDX','CCDY']:
+#                        dic[key] = (dic[key] + CCD_bzero) / CCD_precision
+#                    if key in ['CENTDX','CENTDX_ERR','CENTDY','CENTDY_ERR']:
+#                        dic[key] = (dic[key] + CENTD_bzero) / CENTD_precision
                 j += 1
             except:
                 break
@@ -1257,7 +1257,7 @@ def get_observing_log():
     dic['telescope'] = [ f.split('/')[-5] for f in files ]
     dic['date'] = [ os.path.basename(f).split('_')[0] for f in files ]
     dic['field_name'] = [ os.path.basename(f).split('_')[1] for f in files ]
-    dic['filter'] = [ os.path.basename(f).split('_')[2] for f in files ]
+    dic['filter_band'] = [ os.path.basename(f).split('_')[2] for f in files ]
     dic['N_images'] = np.zeros(len(files))
     dic['exposure'] = np.zeros(len(files))
     dic['N_hours'] = np.zeros(len(files))
@@ -1272,7 +1272,7 @@ def get_observing_log():
             pass
     
     df = pd.DataFrame(dic)
-    df = df[ ['date', 'telescope', 'field_name', 'filter', 'exposure', 'N_images', 'N_hours'] ]
+    df = df[ ['date', 'telescope', 'field_name', 'filter_band', 'exposure', 'N_images', 'N_hours'] ]
     df['date']=pd.to_datetime(df.date)
     df = df.sort_values(by='date') 
     df = df.reset_index(drop=True)

@@ -16,8 +16,14 @@ from __future__ import print_function
 import numpy as np
 import matplotlib.pyplot as plt
 import specio_get
+import specio_find
 import pickle
-import os, sys, socket
+import os, sys, socket, glob
+import astropy.io.fits as pyfits
+#from matplotlib.colors import LogNorm
+from astropy.visualization import MinMaxInterval, SqrtStretch, LogStretch, ImageNormalize
+
+
 
 
 
@@ -147,7 +153,7 @@ def plot_overview(telescope, field_name, filter_band, extra_keys=[], obj_id=None
         time_index=None, time_date=None, time_hjd=None, time_actionid=None, 
         bls_rank=1, indexing='fits', fitsreader='fitsio', simplify=True, 
         fnames=None, root=None, roots=None, silent=True, set_nan=False, 
-        normalized=True, color='lightgrey'):
+        normalized=True, color='lightgrey', figsize='normal'):
     '''
     FLUX     |  FWHM      |  SKYLEVEL  |  AIRMASS
     --------------------------------------------------
@@ -178,7 +184,10 @@ def plot_overview(telescope, field_name, filter_band, extra_keys=[], obj_id=None
     N_rows = int( np.ceil(N_panels/4.) )
         
     t = dic['JD']-2450000
-    fig, axes = plt.subplots(N_rows,4,figsize=(16,N_rows*3),sharex=True)
+    if figsize=='normal':
+        fig, axes = plt.subplots(N_rows,4,figsize=(16,N_rows*3),sharex=True)
+    elif figsize=='small':
+        fig, axes = plt.subplots(N_rows,4,figsize=(10,N_rows*2),sharex=True)
     for i in range(N_rows*4):
         ii,jj = np.unravel_index(i, (N_rows,4))
         if i < len(keys):
@@ -268,7 +277,7 @@ def print_infos(telescope, field_name, filter_band, obj_id=None, obj_row=None,
     print('Hours observed:', "{0:.1f}".format( np.sum(dic['STATS'][1]) * np.nanmean(dic['EXPOSURE']) / 3600. ), 'h')
     print('Date range:', 'from', dic['STATS'][0][0], 'to', dic['STATS'][0][-1])
     print('Mean flux:', "{0:.0f}".format( np.nanmean(dic['FLUX_MEAN']) ))
-    print('G-mag:', "{0:.1f}".format( np.nanmean(dic['GMAG']) ))
+    print('G-mag:', "{0:.1f}".format( dic['GMAG'] ))
     
     
 
@@ -329,6 +338,107 @@ def save_observing_log():
     df = get_observing_log()
     pickle.dump(df, open(dirname+'Observing_log.pickle','wb'))
     df.to_html(dirname+'Observing_log.html')
+    df.to_csv(dirname+'Observing_log.csv')
+    
+    
+    
+    
+def load_observing_log(telescope=None, field_name=None, filter_band=None, date=None):   
+    
+    #::: on laptop (OS X)
+    if sys.platform == "darwin":
+        dirname = '/Users/mx/Big_Data/BIG_DATA_SPECULOOS/Observing_log/'    
+    
+    #::: on Cambridge servers
+    elif 'ra.phy.cam.ac.uk' in socket.gethostname():
+        dirname = '/appcg/data2/SPECULOOS/Observing_log/'  
+        
+    df = pickle.load(open(dirname+'Observing_log.pickle','rb'))
+    
+    if telescope is not None: df = df[ df.telescope==telescope ]
+    if field_name is not None: df = df[ df.field_name==field_name ]
+    if filter_band is not None: df = df[ df.filter_band==filter_band ]
+    if date is not None: df = df[ df.date==date ]
+        
+    return df
+    
+    
+    
+###############################################################################
+# Plot stacked image
+###############################################################################
+def plot_stackimage(telescope, field_name, filter_band, obj_id=None, apt=True, apt_radius=5, fnames=None, root=None, roots=None, silent=True):
+    '''
+    Note:
+        the aperture positions of the stacked images DO NOT match the CCDX/Y values in the pipeline fits files
+        they lie off from each other by a few pixels (up to tens of pixels)
+        this is because the images are slightly rotated and stretched
+        hence, need to take the sequence number from stacked_catalogue, which should always be obj_id+1
+    '''
+    roots = specio_get.standard_roots(telescope, root, silent)
+    dirname = os.path.join( roots['nights'], 'StackImages', '' )
+
+    imagename = glob.glob( os.path.join( dirname, field_name+'_outstack_'+filter_band+'.fts' ) )[0]
+    image_data = pyfits.getdata(imagename)
+    norm = ImageNormalize(image_data, interval=MinMaxInterval(), stretch=LogStretch())
+#    norm = ImageNormalize(vmin=np.mean(image_data), vmax=vmax, stretch=SqrtStretch())
+       
+#    if obj_id is not None:
+#        dic = get(telescope, field_name, filter_band, ['CCDX','CCDY'], obj_id=obj_id, fnames=fnames, root=root, roots=roots, silent=silent)
+#        target_x = np.nanmean(dic['CCDX'])
+#        target_y = np.nanmean(dic['CCDY'])
+        
+    if apt:
+        posname = glob.glob( os.path.join( dirname, field_name+'_stack_catalogue_'+filter_band+'.fts' ) )[0]
+        pos = {}
+        with pyfits.open(posname) as hdulist:
+            pos['OBJ_ID'] = np.array([ 'SP'+str(int(sn) - 1).zfill(6) for sn in hdulist[1].data['Sequence_number'] ]) #assume seq number is always obj_id+1...
+            pos['X'] = hdulist[1].data['X_coordinate']
+            pos['Y'] = hdulist[1].data['Y_coordinate']
+            
+#    if apt:
+#        dic = get(telescope, field_name, filter_band, ['CCDX','CCDY'], fnames=fnames, root=root, roots=roots, silent=silent)
+#        pos = {}
+#        pos['X'] = np.nanmean(dic['CCDX'], axis=1)
+#        pos['Y'] = np.nanmean(dic['CCDY'], axis=1)
+    
+    fig, ax = plt.subplots()    
+    im = ax.imshow(image_data, cmap='gray', norm=norm, origin='lower')
+    apt_artist = []
+    if apt:
+        #all
+        for (x,y) in zip(pos['X'],pos['Y']):
+            circle = plt.Circle((x, y), apt_radius, color='r', lw=2, fill=False)
+            ln = ax.add_artist(circle)
+            apt_artist.append(ln)
+        #target
+        if obj_id is not None:
+            ind_target = np.where( pos['OBJ_ID']==obj_id )[0]
+            circle = plt.Circle((pos['X'][ind_target], pos['Y'][ind_target]), apt_radius, color='lightblue', lw=2, fill=False)
+            ln = ax.add_artist(circle)
+            apt_artist.append(ln)
+        
+    plt.colorbar(im)
+    
+    return fig, ax, apt_artist
+    
+
+
+
+
+###############################################################################
+# Find by CCDX CCDY coords
+###############################################################################
+def find_ccdx_ccdy(x, y, telescope, field_name, filter_band, fnames=None, root=None, roots=None, silent=True):
+    return specio_find.find_ccdx_ccdy(x, y, telescope, field_name, filter_band, fnames=fnames, root=root, roots=roots, silent=silent)
+    
+
+
+def find_ccdx_ccdy_from_stacked_image(x, y, telescope, field_name, filter_band, fnames=None, root=None, roots=None, silent=True):
+    return specio_find.find_ccdx_ccdy_from_stacked_image(x, y, telescope, field_name, filter_band, fnames=fnames, root=root, roots=roots, silent=silent)
+    
+    
+        
     
 
 
@@ -338,4 +448,4 @@ def save_observing_log():
 def root(telescope):
     return specio_get.standard_roots(telescope, None, True)['nights']
     
-    
+
