@@ -21,7 +21,7 @@ import pickle
 import os, sys, socket, glob
 import astropy.io.fits as pyfits
 #from matplotlib.colors import LogNorm
-from astropy.visualization import MinMaxInterval, SqrtStretch, LogStretch, ImageNormalize
+from astropy.visualization import MinMaxInterval, ZScaleInterval, PercentileInterval, SqrtStretch, LogStretch, ImageNormalize
 
 
 
@@ -187,7 +187,7 @@ def plot_overview(telescope, field_name, filter_band, extra_keys=[], obj_id=None
     if figsize=='normal':
         fig, axes = plt.subplots(N_rows,4,figsize=(16,N_rows*3),sharex=True)
     elif figsize=='small':
-        fig, axes = plt.subplots(N_rows,4,figsize=(10,N_rows*2),sharex=True)
+        fig, axes = plt.subplots(N_rows,4,figsize=(11,N_rows*2.5),sharex=True)
     for i in range(N_rows*4):
         ii,jj = np.unravel_index(i, (N_rows,4))
         if i < len(keys):
@@ -326,7 +326,7 @@ def get_observing_log():
 
 def save_observing_log():   
     
-    #::: on laptop (OS X)
+    #::: on laptop (OS X)m
     if sys.platform == "darwin":
         dirname = '/Users/mx/Big_Data/BIG_DATA_SPECULOOS/Observing_log/'    
     
@@ -380,7 +380,12 @@ def plot_stackimage(telescope, field_name, filter_band, obj_id=None, apt=True, a
 
     imagename = glob.glob( os.path.join( dirname, field_name+'_outstack_'+filter_band+'.fts' ) )[0]
     image_data = pyfits.getdata(imagename)
-    norm = ImageNormalize(image_data, interval=MinMaxInterval(), stretch=LogStretch())
+#    image_data -= np.nanmedian(image_data)
+#    image_data[image_data<0] = 0
+#    norm = ImageNormalize(image_data, interval=PercentileInterval(99.), stretch=SqrtStretch())
+    norm = ImageNormalize(image_data, interval=ZScaleInterval(), stretch=SqrtStretch())
+#    norm = ImageNormalize(image_data, interval=ZScaleInterval(), stretch=LogStretch())
+#    norm = ImageNormalize(image_data, interval=MinMaxInterval(), stretch=LogStretch())
 #    norm = ImageNormalize(vmin=np.mean(image_data), vmax=vmax, stretch=SqrtStretch())
        
 #    if obj_id is not None:

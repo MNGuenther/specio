@@ -46,11 +46,11 @@ if __name__ == '__main__':
     #:: plot overview
 #    print specio.plot_overview(telescope, field_name, filter_band, extra_keys=['RA', 'DEC'], obj_id=obj_id)
     
-    specio.plot_stackimage(telescope, field_name, filter_band, obj_id='SP000100')    
+    specio.plot_stackimage(telescope, field_name, filter_band, obj_id='SP000100', apt=False)    
 #
 #    field_name = 'Sp0805-3158'        
 #    specio.save_observing_log()
 #    df = specio.load_observing_log(telescope=telescope, field_name=field_name, filter_band=filter_band)
 #    print(df)
     
-    print(specio.find_ccdx_ccdy(1610,445,telescope, field_name, filter_band))
+#    print(specio.find_ccdx_ccdy(1610,445,telescope, field_name, filter_band))
