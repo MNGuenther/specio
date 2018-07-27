@@ -303,11 +303,11 @@ def get_ACP_pointing(telescope,time_hjd=None):
             
         
         
-def plot_ACP_pointing(telescope,time_hjd=None):
+def plot_ACP_pointing(telescope,time_hjd=None,color='k'):
     dic = get_ACP_pointing(telescope, time_hjd=time_hjd)
     t = dic['JD'] - 2450000
     fig, ax = plt.subplots()
-    ax.plot(t, dic['POINTING_ERR'], 'k.', rasterized=True)
+    ax.plot(t, dic['POINTING_ERR'], 'k.', color=color, rasterized=True)
     ax.set(xlabel='JD (-2450000 d)', ylabel='Pointing error', title=telescope)
     return fig, ax
 
