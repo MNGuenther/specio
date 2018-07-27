@@ -354,11 +354,20 @@ def load_observing_log(telescope=None, field_name=None, filter_band=None, date=N
         dirname = '/appcg/data2/SPECULOOS/Observing_log/'  
         
     df = pickle.load(open(dirname+'Observing_log.pickle','rb'))
-    
+#    print(df)
     if telescope is not None: df = df[ df.telescope==telescope ]
+#    print('after telescope filter:')
+#    print(df)
+#    print(df.field_name)
+#    print(field_name)
     if field_name is not None: df = df[ df.field_name==field_name ]
+#    print('after field_name filter:')
+#    print(df)
     if filter_band is not None: df = df[ df.filter_band==filter_band ]
+#    print('after filter_band filter:')
+#    print(df)
     if date is not None: df = df[ df.date==date ]
+#    print(df)
         
     return df
     
