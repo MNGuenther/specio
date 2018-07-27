@@ -20,9 +20,7 @@ import specio_find
 import pickle
 import os, sys, socket, glob
 import astropy.io.fits as pyfits
-#from matplotlib.colors import LogNorm
-from astropy.visualization import MinMaxInterval, ZScaleInterval, PercentileInterval, SqrtStretch, LogStretch, ImageNormalize
-
+import astropy.visualization as pyvis
 
 
 
@@ -30,7 +28,7 @@ from astropy.visualization import MinMaxInterval, ZScaleInterval, PercentileInte
 ###############################################################################
 # Define version
 ###############################################################################
-__version__ = '0.1.1'
+__version__ = '0.2.0'
 
     
 '''
@@ -354,21 +352,11 @@ def load_observing_log(telescope=None, field_name=None, filter_band=None, date=N
         dirname = '/appcg/data2/SPECULOOS/Observing_log/'  
         
     df = pickle.load(open(dirname+'Observing_log.pickle','rb'))
-#    print(df)
     if telescope is not None: df = df[ df.telescope==telescope ]
-#    print('after telescope filter:')
-#    print(df)
-#    print(df.field_name)
-#    print(field_name)
     if field_name is not None: df = df[ df.field_name==field_name ]
-#    print('after field_name filter:')
-#    print(df)
     if filter_band is not None: df = df[ df.filter_band==filter_band ]
-#    print('after filter_band filter:')
-#    print(df)
     if date is not None: df = df[ df.date==date ]
-#    print(df)
-        
+    
     return df
     
     
@@ -389,18 +377,7 @@ def plot_stackimage(telescope, field_name, filter_band, obj_id=None, apt=True, a
 
     imagename = glob.glob( os.path.join( dirname, field_name+'_outstack_'+filter_band+'.fts' ) )[0]
     image_data = pyfits.getdata(imagename)
-#    image_data -= np.nanmedian(image_data)
-#    image_data[image_data<0] = 0
-#    norm = ImageNormalize(image_data, interval=PercentileInterval(99.), stretch=SqrtStretch())
-    norm = ImageNormalize(image_data, interval=ZScaleInterval(), stretch=SqrtStretch())
-#    norm = ImageNormalize(image_data, interval=ZScaleInterval(), stretch=LogStretch())
-#    norm = ImageNormalize(image_data, interval=MinMaxInterval(), stretch=LogStretch())
-#    norm = ImageNormalize(vmin=np.mean(image_data), vmax=vmax, stretch=SqrtStretch())
-       
-#    if obj_id is not None:
-#        dic = get(telescope, field_name, filter_band, ['CCDX','CCDY'], obj_id=obj_id, fnames=fnames, root=root, roots=roots, silent=silent)
-#        target_x = np.nanmean(dic['CCDX'])
-#        target_y = np.nanmean(dic['CCDY'])
+    norm = pyvis.ImageNormalize(image_data, interval=pyvis.ZScaleInterval(), stretch=pyvis.SqrtStretch())
         
     if apt:
         posname = glob.glob( os.path.join( dirname, field_name+'_stack_catalogue_'+filter_band+'.fts' ) )[0]
@@ -409,12 +386,6 @@ def plot_stackimage(telescope, field_name, filter_band, obj_id=None, apt=True, a
             pos['OBJ_ID'] = np.array([ 'SP'+str(int(sn) - 1).zfill(6) for sn in hdulist[1].data['Sequence_number'] ]) #assume seq number is always obj_id+1...
             pos['X'] = hdulist[1].data['X_coordinate']
             pos['Y'] = hdulist[1].data['Y_coordinate']
-            
-#    if apt:
-#        dic = get(telescope, field_name, filter_band, ['CCDX','CCDY'], fnames=fnames, root=root, roots=roots, silent=silent)
-#        pos = {}
-#        pos['X'] = np.nanmean(dic['CCDX'], axis=1)
-#        pos['Y'] = np.nanmean(dic['CCDY'], axis=1)
     
     fig, ax = plt.subplots()    
     im = ax.imshow(image_data, cmap='gray', norm=norm, origin='lower')
